@@ -7,6 +7,43 @@ import sys
 from PyQt5 import QtCore
 
 
+# Detect Coordinate
+Coord_XuanShang = 750, 458
+Coord_TiaoZhan_Single = 807, 442
+Coord_TiaoZhan_Team = 1098, 591
+Coord_LiKaiDuiWu = 145, 520
+Coord_InTheBattle = 71, 577
+Coord_Finished = 59, 85
+Coord_Bonus = 59, 85
+Coord_Driver_Invite_CheckButton = 496, 312
+Coord_Driver_Invite_OK = 620,371
+Coord_Passenger_Accept1 = 128,228
+Coord_Passenger_Accept2 = 211,239
+
+# Button Region (x1, x2, y1, y2)
+Region_XuanShang = 750-5, 750+5, 458-5, 458+5
+Region_TiaoZhan = 790, 901, 417, 465
+Region_KaiShiZhanDou = 1098-5, 1098+5, 591-5, 591+5
+Region_Bonus = 980, 1030, 225, 275
+Region_Driver_Invite_CheckButton = 490, 505, 310, 327
+Region_Driver_Invite_OK = 600, 747, 360, 405
+Region_Passenger_Accept = 193, 227, 212, 245
+
+# Color Baseline
+Color_XuanShang = "df715e"
+Color_TiaoZhan_Single = "f3b25e"
+Color_KaiShiZhanDou_Ready = "e7c769"
+Color_KaiShiZhanDou_Waiting = "c6c6c6"
+Color_KaiShiZhanDou_Passenger = "f8f3e0"
+Color_InTheBattle = "f7f2df"
+Color_Finished = "e8d9ce"
+Color_Bonus = "746c67"
+Color_Driver_Invite_CheckButton_NO = "725f4d"
+Color_Driver_Invite_CheckButton_YES = "4b5ee9"
+Color_Driver_Invite_OK = "f3b25e"
+Color_Passenger_Accept = "58b563"
+
+
 class XStream(QtCore.QObject):
     _stdout = None
     _stderr = None
@@ -76,24 +113,3 @@ def keep_awake(enable=True):
     else:
         logging.info('disable screen awake')
         ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
-
-
-def bind_window(ts_plugin, window_name):
-    need_ver = '4.019'
-    if ts_plugin.ver() != need_ver:
-        logging.error('register failed')
-        return False
-    else:
-        logging.info('register success')
-
-    hwnd = ts_plugin.FindWindow('', window_name)
-    ts_ret = ts_plugin.BindWindow(hwnd, 'dx2', 'windows', 'windows', 0)
-    if ts_ret != 1:
-        logging.error('binding failed')
-        return False
-    logging.info('binding success')
-    return True
-
-
-def unbind_window(ts_plugin):
-    logging.info('UnBindWindow return: %d' % ts_plugin.UnBindWindow())

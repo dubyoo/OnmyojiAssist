@@ -30,112 +30,56 @@ class OnmyojiThread(threading.Thread):
     def is_stopped(self):
         return self._stop_event.is_set()
 
-    def thread_sleep(self, sleep_time, variable_time=0):
+    def run(self):
+        self.__role_judgement()
+        if self._role == Role.Unknown:
+            self.__main_loop()
+        elif self._role == Role.Single:
+            self.__single_loop()
+        elif self._role == Role.Driver:
+            self.__driver_loop()
+        elif self._role == Role.Passenger:
+            self.__passenger_loop()
+
+    def __emit_stop_signal(self):
+        self.stop()
+        self._onmyoji_assist.stop_signal.emit(int(self.getName()))
+
+    def __sleep_or_quit(self, sleep_time, variable_time=0):
         if not self.is_stopped():
             random_sleep(sleep_time, variable_time)
         if self.is_stopped():
             logging.info("OnmyojiThread(%s) stopped" % self.getName())
             quit()
 
-    def run(self):
-        self.role_judgement()
-        self.main_loop()
+    def __role_judgement(self):
+        self._role = Role.Unknown
 
-    def role_judgement(self):
-        pass
-
-    def main_loop(self):
+    def __main_loop(self):
         counter = 0
         while not self.is_stopped():
             counter += 1
             logging.debug("Thread(%s) count %d" % (self.getName(), counter))
             if self._count == counter:
-                self._onmyoji_assist.signal.emit(int(self.getName()))
                 logging.info("OnmyojiThread(%s) task done" % self.getName())
-                self.stop()
-                quit()
-            self.thread_sleep(500, 1000)
+                self.__emit_stop_signal()
+            self.__sleep_or_quit(500, 1000)
 
-    def enter_battlefield(self):
+    def __single_loop(self):
+        pass
+
+    def __driver_loop(self):
+        pass
+
+    def __passenger_loop(self):
+        pass
+
+    def __enter_battlefield(self):
         return True
 
-    def is_in_the_battle(self):
+    def __is_in_the_battle(self):
         # return self.ts.GetColor(*Coord_InTheBattle) == Color_InTheBattle
         return True
 
-
-# class OnmyojiTask:
-#     def __init__(self, onmyoji_assist, ts_plugin):
-#         self.onmyoji_assist = onmyoji_assist
-#         self.ts = ts_plugin
-#         self.role = Role.Unknown
-#         self._running = False
-#         self.count = 0
-#
-#     def set_counts(self, count):
-#         self.count = count
-#
-#     def terminate(self):
-#         self._running = False
-#
-#     def run(self):
-#         self._running = True
-#         self.role_judgement()
-#         self.main_loop()
-#
-#     def is_running(self):
-#         return self._running
-#
-#     def thread_sleep(self, sleep_time, variable_time=0):
-#         if self._running:
-#             random_sleep(sleep_time, variable_time)
-#         if not self._running:
-#             logging.info("Onmyoji stopped")
-#             quit()
-#
-#     def role_judgement(self):
-#         while self.role == Role.Unknown:
-#             self.role = Role.Single
-#             logging.info("Role judgement: %s" % self.role)
-#             # self.role = Role.Driver
-#             # self.role = Role.Passenger
-#             break
-#
-#     def main_loop(self):
-#         # main loop of battle
-#         counter = 0
-#         while self._running:
-#             counter += 1
-#             logging.info('<------ Mission Start (%d)------>' % counter)
-#             # self.enter_battlefield()
-#             #
-#             # # detect if we are in the battle
-#             # while not self.is_in_the_battle():
-#             #     self.thread_sleep(500)
-#             # logging.debug('now we are in the battle')
-#             #
-#             # # detect if we finished
-#             # while self.is_in_the_battle():
-#             #     self.thread_sleep(500)
-#             # logging.debug('battle finished')
-#             # self.thread_sleep(2000)
-#             #
-#             # # bonus page
-#             # while not self.is_proxy_ready():
-#             #     logging.debug('bonus time ~~~')
-#             #     click_in_region(self.ts, *Region_Bonus)
-#             #     self.thread_sleep(500, 1000)
-#             # logging.debug('leave bonus page')
-#             logging.info('<------ Mission End (%d)------>' % counter)
-#             if self.count == counter:
-#                 self.onmyoji_assist.ui.pushButton_stop.click()
-#                 logging.info("Onmyoji mission task done")
-#                 quit()
-#             self.thread_sleep(500)
-#
-#     def enter_battlefield(self):
-#         return True
-#
-#     def is_in_the_battle(self):
-#         # return self.ts.GetColor(*Coord_InTheBattle) == Color_InTheBattle
-#         return True
+    def unbind_window(self):
+        logging.info('thread(%s) unBindWindow return: %d' % (self.getName(), self._ts.UnBindWindow()))

@@ -9,14 +9,14 @@ import win32com.client
 
 
 class OnmyojiAssist(QWidget):
-    signal = pyqtSignal(int)
+    stop_signal = pyqtSignal(int)
 
     def __init__(self):
         QWidget.__init__(self)
         self.ui = ui_onmyoji_assist.Ui_OnmyojiAssist()
         self.init_ui()
         self.main_ts = None  # win32com.client.Dispatch('ts.tssoft')
-        self.threads = []
+        self.threads = {}
 
     def init_ui(self):
         self.ui.setupUi(self)
@@ -27,12 +27,12 @@ class OnmyojiAssist(QWidget):
         self.ui.checkBox_count.stateChanged.connect(self.on_checkbox_count_clicked)
         self.ui.pushButton_start.clicked.connect(self.start_all)
         self.ui.pushButton_stop.clicked.connect(self.stop_all)
-        self.signal.connect(self.stop_thread)
+        self.stop_signal.connect(self.stop_thread)
 
     def on_checkbox_count_clicked(self):
         self.ui.spinBox_count.setEnabled(True if self.ui.checkBox_count.checkState() == Qt.Checked else False)
 
-    def detect_windows(self):
+    def detect_onmyoji_windows(self):
         # hwnd_raw = self.main_ts.EnumWindowByProcess("onmyoji.exe", "", "", 16)
         # handler_list = hwnd_raw.split(',')
         # logging.error('windows handle:', handler_list)
@@ -49,37 +49,43 @@ class OnmyojiAssist(QWidget):
             onmyoji_thread = OnmyojiThread.OnmyojiThread(self, None)  # ts)
             onmyoji_thread.set_count(count)
             onmyoji_thread.setName(str(i))
-            self.threads.append(onmyoji_thread)
+            self.threads[i] = onmyoji_thread
         return True
 
     def start_all(self):
-        self.detect_windows()
+        self.detect_onmyoji_windows()
         self.ui.pushButton_stop.setEnabled(True)
         self.ui.pushButton_start.setEnabled(False)
         self.ui.checkBox_count.setEnabled(False)
         self.ui.spinBox_count.setEnabled(False)
         # keep_awake()
         logging.info('start all threads')
-        for thread in self.threads:
+        for thread in self.threads.values():
             thread.start()
 
     def stop_all(self):
         logging.info('stop all threads')
-        for thread in self.threads:
+        for thread in self.threads.values():
             thread.stop()
-        for thread in self.threads:
+        for thread in self.threads.values():
             thread.join()
+            # thread.unbind_window()
         self.threads.clear()
-        # unbind_window(self.ts)
         # keep_awake(False)
         self.ui.pushButton_stop.setEnabled(False)
         self.ui.pushButton_start.setEnabled(True)
         self.ui.checkBox_count.setEnabled(True)
         self.on_checkbox_count_clicked()
 
-    @staticmethod
-    def stop_thread(index):
-        logging.debug("received emit message %d" % index)
+    def stop_thread(self, index):
+        thread = self.threads.pop(index)
+        if thread is not None:
+            thread.stop()
+            thread.join()
+            # thread.unbind_window()
+        # logging.info(self.threads)
+        if len(self.threads) == 0:
+            self.stop_all()
 
     def closeEvent(self, close_event):
         self.stop_all()
