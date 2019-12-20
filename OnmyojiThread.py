@@ -78,8 +78,16 @@ class OnmyojiThread(threading.Thread):
         return True
 
     def __is_in_the_battle(self):
-        # return self.ts.GetColor(*Coord_InTheBattle) == Color_InTheBattle
-        return True
+        return self._ts.GetColor(*Coord_InTheBattle) == Color_InTheBattle
+
+    def __reject_xuan_shang(self):
+        color = self._ts.GetColor(*Coord_XuanShang)
+        if color == Color_XuanShang:
+            logging.debug("received invitation XUAN-SHANG")
+            self.__sleep_or_quit(750, 250)
+            click_in_region(self._ts, *Region_XuanShang)
+            logging.debug("successfully rejected XUAN-SHANG")
+        self.__sleep_or_quit(50)
 
     def unbind_window(self):
         logging.info('thread(%s) unBindWindow return: %d' % (self.getName(), self._ts.UnBindWindow()))
