@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_OnmyojiAssist(object):
     def setupUi(self, OnmyojiAssist):
         OnmyojiAssist.setObjectName("OnmyojiAssist")
-        OnmyojiAssist.resize(367, 178)
+        OnmyojiAssist.resize(540, 300)
         self.verticalLayout = QtWidgets.QVBoxLayout(OnmyojiAssist)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout_counter = QtWidgets.QHBoxLayout()
