@@ -4,7 +4,9 @@ import random
 import ctypes
 import logging
 import sys
+import os
 from PyQt5 import QtCore
+from PyQt5.QtWidgets import QMessageBox
 
 
 # Detect Coordinate
@@ -47,6 +49,30 @@ Color_Driver_Invite_CheckButton_YES = "4b5ee9"
 Color_Driver_Invite_OK = "f3b25e"
 Color_Passenger_Accept = "58b563"
 
+logger = logging.getLogger('my_logger')
+
+
+class TimedMessageBox(QMessageBox):
+    def __init__(self, timeout=30, parent=None):
+        super(TimedMessageBox, self).__init__(parent)
+        self.timeout = timeout
+        self.setWindowTitle("自动关机")
+        self.setText("系统将在 %d 秒后关机，点击按钮取消？" % self.timeout)
+        self.timer = QtCore.QTimer(self)
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.tick)
+        self.timer.start()
+
+    def tick(self):
+        self.timeout -= 1
+        if self.timeout >= 0:
+            logger.info('%d' % self.timeout)
+            self.setText("系统将在 %d 秒后关机，点击按钮取消？" % self.timeout)
+        else:
+            self.timer.stop()
+            logger.info("正在关机")
+            os.system('shutdown /s /t 5')
+
 
 class XStream(QtCore.QObject):
     _stdout = None
@@ -80,6 +106,17 @@ class MyQtHandler(logging.Handler):
         record = self.format(record)
         if record:
             XStream.stdout().write('%s' % record)
+
+
+def init_logger():
+    text_browser_handler = MyQtHandler()
+    terminal_handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+    text_browser_handler.setFormatter(formatter)
+    terminal_handler.setFormatter(formatter)
+    logger.addHandler(terminal_handler)
+    logger.addHandler(text_browser_handler)
+    logger.setLevel(logging.INFO)
 
 
 def random_sleep(sleep_time, variable_time=0):

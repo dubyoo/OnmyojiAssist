@@ -8,9 +8,7 @@ if __name__ == '__main__':
     # 需要提前在 windows 中注册 TSPlug.dll
     # 方法: regsvr32.exe TSPlug.dll
 
-    handler = MyQtHandler()
-    logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', level=logging.DEBUG, handlers=[handler])
-    # logging.debug('python version: %s' % sys.version)
+    init_logger()
 
     app = QApplication(sys.argv)
     assist = OnmyojiAssist.OnmyojiAssist()
