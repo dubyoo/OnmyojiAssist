@@ -135,10 +135,10 @@ def click_in_region(ts, x1, y1, x2, y2):
     x = random.randint(x1, x2)
     y = random.randint(y1, y2)
     ts.MoveTo(x, y)
-    logging.debug('move to (%d, %d)' % (x, y))
+    logger.debug('move to (%d, %d)' % (x, y))
     random_sleep(100, 100)
     ts.LeftClick()
-    logging.debug('left click')
+    logger.debug('left click')
 
 
 def keep_awake(enable=True):
@@ -149,8 +149,8 @@ def keep_awake(enable=True):
     ES_SYSTEM_REQUIRED = 0x00000001
     ES_DISPLAY_REQUIRED = 0x00000002
     if enable:
-        logging.info('enable screen awake')
+        logger.info('enable screen awake')
         ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED)
     else:
-        logging.info('disable screen awake')
+        logger.info('disable screen awake')
         ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
