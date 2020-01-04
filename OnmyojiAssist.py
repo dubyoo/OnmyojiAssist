@@ -53,13 +53,13 @@ class OnmyojiAssist(QWidget):
     def detect_onmyoji_windows(self):
         hwnd_raw = self.main_ts.EnumWindowByProcess("onmyoji.exe", "", "", 16)
         handler_list = hwnd_raw.split(',')
-        if len(handler_list) < 1:
-            logging.error('未检测到运行中的窗口')
+        if handler_list == ['']:
+            logger.error('未检测到运行中的窗口')
             return False
         for i, handler in enumerate(handler_list):
             ts = win32com.client.Dispatch('ts.tssoft')
             if ts.BindWindow(handler, 'dx2', 'windows', 'windows', 0) != 1:
-                logging.error('窗口绑定失败')
+                logger.error('窗口绑定失败')
                 return False
             size = ts.GetClientSize(handler)  # size: (ret, width, height)
             if size[1] != 1136 or size[2] != 640:
