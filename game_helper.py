@@ -1,51 +1,22 @@
-# -*- coding: utf-8 -*-
+# -*- coding:utf-8 -*-
 import ctypes
 import logging
 import sys
 import os
+import random
+import time
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QMessageBox
 
+IMG_TEAM_TIAO_ZHAN = (1054, 552, 1110, 594)
+IMG_TEAM_READY = (21, 14, 191, 56)
+IMG_XUAN_SHANG = (496, 137, 620, 176)
 
-# Detect Coordinate
-Coord_XuanShang = 750, 458
-Coord_TiaoZhan_Single = 1026, 513
-Coord_TiaoZhan_Team = 1098, 591
-Coord_TiaoZhan_Passenger = 0, 0
-Coord_LiKaiDuiWu = 145, 520
-Coord_InTheBattle = 71, 577
-Coord_Finished = 59, 85
-Coord_Bonus = 59, 85
-Coord_Driver_Invite_CheckButton = 496, 312
-Coord_Driver_Invite_OK = 620, 371
-Coord_Passenger_Accept1 = 128, 228
-Coord_Passenger_Accept2 = 211, 239
+POS_REJECT_XUAN_SHANG = (739, 442, 776, 480)
+POS_TEAM_TIAO_ZHAN = IMG_TEAM_TIAO_ZHAN
 
-# Button Region (x1, y1, x2, y2)
-Region_XuanShang = 750-5, 458-5, 750+5, 458+5
-Region_TiaoZhan_Single = 995, 540, 1060, 590
-# Region_TiaoZhan = 790, 417, 901, 465
-Region_TiaoZhan_Driver = 1098-5, 591-5, 1098+5, 591+5
-Region_Bonus = 163, 86, 244, 105
-Region_Driver_Invite_CheckButton = 490, 310, 505, 327
-Region_Driver_Invite_OK = 600, 360, 747, 405
-Region_Passenger_Accept = 193, 212, 227, 245
-
-# Color Baseline
-Color_XuanShang = "df715e"
-Color_TiaoZhan_Single = "beb19b"   # yuhun
-Color_TiaoZhan_Single2 = "d7ccb4"  # juexing
-Color_TiaoZhan_Single3 = "624f40"  # yuling
-Color_TiaoZhan_Ready = "e7c769"
-Color_TiaoZhan_Waiting = "c6c6c6"
-Color_TiaoZhan_Passenger = "f8f3e0"
-Color_InTheBattle = "f7f2df"
-Color_Finished = "e8d9ce"
-Color_Bonus = "746c67"
-Color_Driver_Invite_CheckButton_NO = "725f4d"
-Color_Driver_Invite_CheckButton_YES = "4b5ee9"
-Color_Driver_Invite_OK = "f3b25e"
-Color_Passenger_Accept = "58b563"
+POS_OVERFLOW_OK_LT = (515, 354)
+POS_OVERFLOW_OK_RB = (620, 396)
 
 logger = logging.getLogger('my_logger')
 
@@ -117,28 +88,6 @@ def init_logger():
     logger.setLevel(logging.INFO)
 
 
-# def random_sleep(sleep_time, variable_time=0):
-#     """
-#     randomly sleep for a short time between `sleep_time` and `sleep_time + variable_time`
-#     because of the legacy reason, sleep_time and variable_time are in millisecond
-#     """
-#     slp = random.randint(sleep_time, sleep_time + variable_time)
-#     time.sleep(slp / 1000)
-
-
-# def click_in_region(ts, x1, y1, x2, y2):
-#     """
-#     randomly click a point in a rectangle region (x1, y1), (x2, y2)
-#     """
-#     x = random.randint(x1, x2)
-#     y = random.randint(y1, y2)
-#     ts.MoveTo(x, y)
-#     logger.debug('move to (%d, %d)' % (x, y))
-#     random_sleep(100, 100)
-#     ts.LeftClick()
-#     logger.debug('left click')
-
-
 def keep_awake(enable=True):
     """
     make the screen keep awake, do not go to sleep mode
@@ -152,3 +101,12 @@ def keep_awake(enable=True):
     else:
         logger.info('disable screen awake')
         ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
+
+
+def random_sleep(sleep_time, variable_time=0):
+    """
+    随机睡眠一段时间，单位是 ms
+    """
+    slp = random.randint(sleep_time, sleep_time + variable_time)
+    time.sleep(slp / 1000)
+

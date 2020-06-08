@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt, pyqtSignal
-from MyHelper import *
+from game_window import *
 import OnmyojiThread
 import ui_onmyoji_assist
-import win32com.client
 
 
 class OnmyojiAssist(QWidget):
@@ -15,11 +14,6 @@ class OnmyojiAssist(QWidget):
         self.ui = ui_onmyoji_assist.Ui_OnmyojiAssist()
         self.init_ui()
         self.threads = {}
-        try:
-            self.main_ts = win32com.client.Dispatch('ts.tssoft')
-        except:
-            logger.error("加载天使插件失败")
-            self.ui.pushButton_start.setEnabled(False)
 
     def init_ui(self):
         self.ui.setupUi(self)
@@ -51,35 +45,21 @@ class OnmyojiAssist(QWidget):
         self.ui.spinBox_count.setEnabled(True if self.ui.checkBox_count.checkState() == Qt.Checked else False)
 
     def detect_onmyoji_windows(self):
-        hwnd_raw = self.main_ts.EnumWindowByProcess("onmyoji.exe", "", "", 16)
-        handler_list = hwnd_raw.split(',')
-        if handler_list == ['']:
-            logger.error('未检测到运行中的窗口')
+        hwnd_list = get_window_handlers()
+        if len(hwnd_list) == 0:
+            logger.error('未检测到运行中的阴阳师游戏窗口')
             return False
-        for i, handler in enumerate(handler_list):
-            ts = win32com.client.Dispatch('ts.tssoft')
-            if ts.BindWindow(handler, 'dx2', 'windows', 'windows', 0) != 1:
-                logger.error('窗口绑定失败')
-                return False
-            size = ts.GetClientSize(handler)  # size: (ret, width, height)
-            if size[1] != 1136 or size[2] != 640:
-                rect = ts.GetWindowRect(handler)  # rect: (ret, x1, y1, x2, y2)
-                ts.SetClientSize(handler, 1136, 640)
-                ts.MoveWindow(handler, rect[1], rect[2])
+        for i, hwnd in enumerate(hwnd_list):
+            window_rect = win32gui.GetWindowRect(hwnd)
+            if window_rect[2] - window_rect[0] != 1152 or window_rect[3] - window_rect[0] != 679:
+                win32gui.SetWindowPos(hwnd, win32con.HWND_TOP, window_rect[0], window_rect[1],
+                                      1152, 679, win32con.SWP_SHOWWINDOW)
             count = self.ui.spinBox_count.value() if self.ui.checkBox_count.checkState() == Qt.Checked else 0
-            onmyoji_thread = OnmyojiThread.OnmyojiThread(self, ts)
+            onmyoji_thread = OnmyojiThread.OnmyojiThread(self, hwnd)
             onmyoji_thread.set_count(count)
             onmyoji_thread.setName(str(i))
             self.threads[i] = onmyoji_thread
         return True
-        #
-        # for i in range(3):
-        #     count = self.ui.spinBox_count.value() if self.ui.checkBox_count.checkState() == Qt.Checked else 0
-        #     onmyoji_thread = OnmyojiThread.OnmyojiThread(self, None)
-        #     onmyoji_thread.set_count(count)
-        #     onmyoji_thread.setName(str(i))
-        #     self.threads[i] = onmyoji_thread
-        # return True
 
     def on_start_button_clicked(self):
         if not self.detect_onmyoji_windows():
@@ -114,7 +94,6 @@ class OnmyojiAssist(QWidget):
             thread.stop()
         for thread in self.threads.values():
             thread.join()
-            thread.unbind_window()
         self.threads.clear()
         keep_awake(False)
         self.ui.pushButton_stop.setEnabled(False)
@@ -133,7 +112,6 @@ class OnmyojiAssist(QWidget):
         if thread is not None:
             thread.stop()
             thread.join()
-            thread.unbind_window()
         logger.info("还有 %d 个线程正在运行", len(self.threads))
         if len(self.threads) == 0:
             self.stop_all()
