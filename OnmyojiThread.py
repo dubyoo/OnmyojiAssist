@@ -233,13 +233,26 @@ class OnmyojiThread(threading.Thread):
         max_val, _ = find_image(self._hwnd, './img/XUAN_SHANG.bmp', pos, pos_end)
         if max_val > 0.9:
             logger.info("线程(%s) 检测到悬赏邀请" % self.getName())
+            index = self.__check_reward_type('./img/GOU_YU.bmp', './img/TI_LI.bmp')
+            can_accept = True if 0 <= index <= 1 else False
             self.__sleep_or_quit(650, 250)
-            pos = (POS_REJECT_XUAN_SHANG[0], POS_REJECT_XUAN_SHANG[1])
-            pos_end = (POS_REJECT_XUAN_SHANG[2], POS_REJECT_XUAN_SHANG[3])
+            if can_accept:
+                pos = (POS_ACCEPT_XUAN_SHANG[0], POS_ACCEPT_XUAN_SHANG[1])
+                pos_end = (POS_ACCEPT_XUAN_SHANG[2], POS_ACCEPT_XUAN_SHANG[3])
+                logger.info("线程(%s) 已接受悬赏" % self.getName())
+            else:
+                pos = (POS_REJECT_XUAN_SHANG[0], POS_REJECT_XUAN_SHANG[1])
+                pos_end = (POS_REJECT_XUAN_SHANG[2], POS_REJECT_XUAN_SHANG[3])
+                logger.info("线程(%s) 已拒绝悬赏" % self.getName())
             click(self._hwnd, pos, pos_end)
-            logger.info("线程(%s) 已拒绝悬赏" % self.getName())
         self.__sleep_or_quit(50)
 
+    def __check_reward_type(self, *image_paths):
+        for index, image in enumerate(image_paths):
+            max_val, _ = find_image(self._hwnd, image)
+            if max_val > 0.9:
+                return index
+        return -1
     def __wait_till_image(self, image_path, max_time=0, disappear=False):
         start_time = time.clock()
         while True:
