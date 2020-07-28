@@ -42,7 +42,7 @@ class OnmyojiThread(threading.Thread):
     def run(self):
         logger.info("线程(%s) 开始运行" % self.getName())
         try:
-            #self.__test_loop()
+            # self.__test_loop()
             self.__role_judgement()
             self.__main_loop()
         except QuitThread:
