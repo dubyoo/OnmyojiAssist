@@ -103,7 +103,11 @@ def compare_image(img_template, img_cmp):
     try:
         res = cv2.matchTemplate(img_template, img_cmp, cv2.TM_CCOEFF_NORMED)
         minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(res)
-        return maxVal, maxLoc
+        if maxVal > 0.9:
+            template = cv2.imread(img_cmp, cv2.IMREAD_COLOR)
+            w, h = template.shape[::-1]
+            img_loc = [maxLoc[0], maxLoc[1], maxLoc[0] + w, maxLoc[1] + h]
+        return maxVal, img_loc
     except Exception:
         logger.warning('compare_image failed')
         a = traceback.format_exc()

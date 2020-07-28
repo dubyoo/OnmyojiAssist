@@ -232,11 +232,11 @@ class OnmyojiThread(threading.Thread):
         buffs, pos = find_image(self._hwnd, './img/JIA_CHENG.bmp')
         if buffs > 0.9:
             logger.debug("线程(%s) 找到加成入口" % self.getName())
-            click(self._hwnd, (pos[0] + 20, pos[1] + 20), (pos[0] + 50, pos[1] + 50))
+            click(self._hwnd, (pos[0], pos[1]), (pos[2], pos[3]))
             buff_yu_hun_on, pos_yu_hun = find_image(self._hwnd, './img/JIA_CHENG_YU_HUN_KAI.bmp')
             buff_yu_hun_off, _ = find_image(self._hwnd, './img/JIA_CHENG_YU_HUN_GUAN.bmp')
             if buff_yu_hun_on > 0.9 > buff_yu_hun_off:
-                click(self._hwnd, (pos_yu_hun[0] + 20, pos_yu_hun[1] + 20), (pos_yu_hun[0] + 50, pos_yu_hun[1] + 50))
+                click(self._hwnd, (pos_yu_hun[0], pos_yu_hun[1]), (pos_yu_hun[2], pos_yu_hun[3]))
             logger.info("<--- 线程(%s) 关闭御魂加成 --->" % self.getName())
 
     def __reject_reward(self):
