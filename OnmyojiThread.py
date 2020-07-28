@@ -225,7 +225,19 @@ class OnmyojiThread(threading.Thread):
         logger.info("<--- 线程(%s) 第 %d 次战斗结束 --->" % (self.getName(), counter))
         if self._count == counter or self._stop_after_finish:
             logger.info("<--- 线程(%s) 计划任务 %d/%d 完成 --->" % (self.getName(), counter, self._count))
+            self.__close_yu_hun_buff()
             self.__emit_stop_signal()
+
+    def __close_yu_hun_buff(self):
+        buffs, pos = find_image(self._hwnd, './img/JIA_CHENG.bmp')
+        if buffs > 0.9:
+            logger.debug("线程(%s) 找到加成入口" % self.getName())
+            click(self._hwnd, (pos[0] + 20, pos[1] + 20), (pos[0] + 50, pos[1] + 50))
+            buff_yu_hun_on, pos_yu_hun = find_image(self._hwnd, './img/JIA_CHENG_YU_HUN_KAI.bmp')
+            buff_yu_hun_off, _ = find_image(self._hwnd, './img/JIA_CHENG_YU_HUN_GUAN.bmp')
+            if buff_yu_hun_on > 0.9 > buff_yu_hun_off:
+                click(self._hwnd, (pos_yu_hun[0] + 20, pos_yu_hun[1] + 20), (pos_yu_hun[0] + 50, pos_yu_hun[1] + 50))
+            logger.info("<--- 线程(%s) 关闭御魂加成 --->" % self.getName())
 
     def __reject_reward(self):
         pos = (IMG_XUAN_SHANG[0], IMG_XUAN_SHANG[1])
@@ -253,6 +265,7 @@ class OnmyojiThread(threading.Thread):
             if max_val > 0.9:
                 return index
         return -1
+
     def __wait_till_image(self, image_path, max_time=0, disappear=False):
         start_time = time.clock()
         while True:
