@@ -50,13 +50,13 @@ class OnmyojiAssist(QWidget):
         if len(hwnd_list) == 0:
             logger.error('未检测到运行中的阴阳师游戏窗口')
             return False
+        lock = threading.Lock()
         for i, hwnd in enumerate(hwnd_list):
             window_rect = win32gui.GetWindowRect(hwnd)
             if window_rect[2] - window_rect[0] != 1152 or window_rect[3] - window_rect[0] != 679:
                 win32gui.SetWindowPos(hwnd, win32con.HWND_TOP, window_rect[0], window_rect[1],
                                       1152, 679, win32con.SWP_SHOWWINDOW)
             count = self.ui.spinBox_count.value() if self.ui.checkBox_count.checkState() == Qt.Checked else 0
-            lock = threading.Lock()
             onmyoji_thread = OnmyojiThread.OnmyojiThread(self, hwnd, lock)
             onmyoji_thread.set_count(count)
             onmyoji_thread.setName(str(i))
