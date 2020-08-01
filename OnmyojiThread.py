@@ -17,11 +17,12 @@ class QuitThread(Exception):
 
 
 class OnmyojiThread(threading.Thread):
-    def __init__(self, onmyoji_assist, hwnd):
+    def __init__(self, onmyoji_assist, hwnd, lock):
         super(OnmyojiThread, self).__init__()
         self._stop_event = threading.Event()
         self._onmyoji_assist = onmyoji_assist
         self._hwnd = hwnd
+        self._lock = lock
         self._role = Role.Unknown
         self._stop_after_finish = False
         self._count = 0
@@ -77,8 +78,9 @@ class OnmyojiThread(threading.Thread):
         while self._role == Role.Unknown:
             self.__sleep_or_quit(500)
             self.__reject_reward()
-            is_xie_zhan, _ = find_image(self._hwnd, './img/XIE_ZHAN_DUI_WU.bmp')
-            is_tiao_zhan, _ = find_image(self._hwnd, './img/TIAO_ZHAN_READY.bmp')
+            with self._lock:
+                is_xie_zhan, _ = find_image(self._hwnd, './img/XIE_ZHAN_DUI_WU.bmp')
+                is_tiao_zhan, _ = find_image(self._hwnd, './img/TIAO_ZHAN_READY.bmp')
             if is_xie_zhan > 0.9 and is_tiao_zhan > 0.9:
                 self._role = Role.Driver
             elif is_xie_zhan > 0.9:
@@ -142,8 +144,9 @@ class OnmyojiThread(threading.Thread):
             while True:
                 self.__sleep_or_quit(800)
                 self.__reject_reward()
-                waiting, _ = find_image(self._hwnd, './img/TIAO_ZHAN_WAITING.bmp')
-                ready, _ = find_image(self._hwnd, './img/TIAO_ZHAN_READY.bmp')
+                with self._lock:
+                    waiting, _ = find_image(self._hwnd, './img/TIAO_ZHAN_WAITING.bmp')
+                    ready, _ = find_image(self._hwnd, './img/TIAO_ZHAN_READY.bmp')
                 if waiting > ready > 0.9:
                     logger.debug("线程(%s) 等待队友加入" % self.getName())
                 elif ready > waiting > 0.9:
@@ -159,7 +162,8 @@ class OnmyojiThread(threading.Thread):
         if win is not True:
             return
         self.__reject_reward()
-        overflow, _ = find_image(self._hwnd, './img/OVERFLOW.bmp')
+        with self._lock:
+            overflow, _ = find_image(self._hwnd, './img/OVERFLOW.bmp')
         if overflow < 0.9:
             return
         if not self.__click_till_image('./img/OVERFLOW.bmp', POS_OVERFLOW_OK_LT, POS_OVERFLOW_OK_RB, 10, False):
@@ -194,7 +198,8 @@ class OnmyojiThread(threading.Thread):
             pass
         elif self._role == Role.Driver:
             self.__reject_reward()
-            invite, _ = find_image(self._hwnd, './img/JI_XU.bmp')
+            with self._lock:
+                invite, _ = find_image(self._hwnd, './img/JI_XU.bmp')
             if invite > 0.9:
                 logger.debug("线程(%s) 自动邀请队友" % self.getName())
                 if win:
@@ -208,11 +213,12 @@ class OnmyojiThread(threading.Thread):
         elif self._role == Role.Passenger:
             while True:
                 self.__reject_reward()
-                if win:
-                    invitation, pos = find_image(self._hwnd, './img/INVITATION.bmp')
-                else:
-                    invitation, pos = find_image(self._hwnd, './img/INVITATION_2.bmp')
-                in_team, _ = find_image(self._hwnd, './img/XIE_ZHAN_DUI_WU.bmp')
+                with self._lock:
+                    if win:
+                        invitation, pos = find_image(self._hwnd, './img/INVITATION.bmp')
+                    else:
+                        invitation, pos = find_image(self._hwnd, './img/INVITATION_2.bmp')
+                    in_team, _ = find_image(self._hwnd, './img/XIE_ZHAN_DUI_WU.bmp')
                 if invitation > 0.9:
                     logger.debug("线程(%s) 自动接收组队邀请" % self.getName())
                     click(self._hwnd, (pos[0]+20, pos[1]+20), (pos[0]+50, pos[1]+50))
@@ -230,11 +236,12 @@ class OnmyojiThread(threading.Thread):
     def __reject_reward(self):
         pos = (IMG_XUAN_SHANG[0], IMG_XUAN_SHANG[1])
         pos_end = (IMG_XUAN_SHANG[2], IMG_XUAN_SHANG[3])
-        max_val, _ = find_image(self._hwnd, './img/XUAN_SHANG.bmp', pos, pos_end)
+        with self._lock:
+            max_val, _ = find_image(self._hwnd, './img/XUAN_SHANG.bmp', pos, pos_end)
         if max_val > 0.9:
             logger.info("线程(%s) 检测到悬赏邀请" % self.getName())
             index = self.__check_reward_type('./img/GOU_YU.bmp', './img/TI_LI.bmp')
-            can_accept = True if 0 <= index <= 1 else False
+            can_accept = True if index == 0 else False
             self.__sleep_or_quit(650, 250)
             if can_accept:
                 pos = (POS_ACCEPT_XUAN_SHANG[0], POS_ACCEPT_XUAN_SHANG[1])
@@ -249,10 +256,12 @@ class OnmyojiThread(threading.Thread):
 
     def __check_reward_type(self, *image_paths):
         for index, image in enumerate(image_paths):
-            max_val, _ = find_image(self._hwnd, image)
+            with self._lock:
+                max_val, _ = find_image(self._hwnd, image)
             if max_val > 0.9:
                 return index
         return -1
+
     def __wait_till_image(self, image_path, max_time=0, disappear=False):
         start_time = time.clock()
         while True:
@@ -260,7 +269,8 @@ class OnmyojiThread(threading.Thread):
             self.__reject_reward()
             if time.clock() - start_time > max_time > 0:
                 return False
-            max_val, _ = find_image(self._hwnd, image_path)
+            with self._lock:
+                max_val, _ = find_image(self._hwnd, image_path)
             if (max_val > 0.9) is not disappear:
                 return True
 
@@ -272,7 +282,8 @@ class OnmyojiThread(threading.Thread):
             if time.clock() - start_time > max_time > 0:
                 return False, None
             for index, image in enumerate(image_paths):
-                max_val, _ = find_image(self._hwnd, image)
+                with self._lock:
+                    max_val, _ = find_image(self._hwnd, image)
                 if max_val > 0.9:
                     return True, index
 
@@ -283,7 +294,8 @@ class OnmyojiThread(threading.Thread):
             self.__reject_reward()
             if time.clock() - start_time > max_time > 0:
                 return False
-            max_val, _ = find_image(self._hwnd, image_path)
+            with self._lock:
+                max_val, _ = find_image(self._hwnd, image_path)
             if (max_val > 0.9) is not disappear:
                 return True
             else:

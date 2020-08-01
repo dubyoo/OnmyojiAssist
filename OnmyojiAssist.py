@@ -2,6 +2,7 @@
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt, pyqtSignal
 from game_window import *
+import threading
 import OnmyojiThread
 import ui_onmyoji_assist
 
@@ -55,7 +56,8 @@ class OnmyojiAssist(QWidget):
                 win32gui.SetWindowPos(hwnd, win32con.HWND_TOP, window_rect[0], window_rect[1],
                                       1152, 679, win32con.SWP_SHOWWINDOW)
             count = self.ui.spinBox_count.value() if self.ui.checkBox_count.checkState() == Qt.Checked else 0
-            onmyoji_thread = OnmyojiThread.OnmyojiThread(self, hwnd)
+            lock = threading.Lock()
+            onmyoji_thread = OnmyojiThread.OnmyojiThread(self, hwnd, lock)
             onmyoji_thread.set_count(count)
             onmyoji_thread.setName(str(i))
             self.threads[i] = onmyoji_thread
