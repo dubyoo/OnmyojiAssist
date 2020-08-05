@@ -17,11 +17,12 @@ class QuitThread(Exception):
 
 
 class OnmyojiThread(threading.Thread):
-    def __init__(self, onmyoji_assist, hwnd):
+    def __init__(self, onmyoji_assist, hwnd, lock):
         super(OnmyojiThread, self).__init__()
         self._stop_event = threading.Event()
         self._onmyoji_assist = onmyoji_assist
         self._hwnd = hwnd
+        self._lock = lock
         self._role = Role.Unknown
         self._stop_after_finish = False
         self._count = 0
@@ -41,7 +42,7 @@ class OnmyojiThread(threading.Thread):
     def run(self):
         logger.info("线程(%s) 开始运行" % self.getName())
         try:
-            # self.__test_loop()e
+            #self.__test_loop()
             self.__role_judgement()
             self.__main_loop()
         except QuitThread:
@@ -69,6 +70,7 @@ class OnmyojiThread(threading.Thread):
             random_sleep(sleep_time, variable_time)
         if self.is_stopped():
             logger.debug("线程(%s) 即将停止" % self.getName())
+            self.__close_yu_hun_buff()
             raise QuitThread('quit')
 
     def __role_judgement(self):
@@ -77,8 +79,9 @@ class OnmyojiThread(threading.Thread):
         while self._role == Role.Unknown:
             self.__sleep_or_quit(500)
             self.__reject_reward()
-            is_xie_zhan, _ = find_image(self._hwnd, './img/XIE_ZHAN_DUI_WU.bmp')
-            is_tiao_zhan, _ = find_image(self._hwnd, './img/TIAO_ZHAN_READY.bmp')
+            with self._lock:
+                is_xie_zhan, _ = find_image(self._hwnd, './img/XIE_ZHAN_DUI_WU.bmp')
+                is_tiao_zhan, _ = find_image(self._hwnd, './img/TIAO_ZHAN_READY.bmp')
             if is_xie_zhan > 0.9 and is_tiao_zhan > 0.9:
                 self._role = Role.Driver
             elif is_xie_zhan > 0.9:
@@ -142,8 +145,9 @@ class OnmyojiThread(threading.Thread):
             while True:
                 self.__sleep_or_quit(800)
                 self.__reject_reward()
-                waiting, _ = find_image(self._hwnd, './img/TIAO_ZHAN_WAITING.bmp')
-                ready, _ = find_image(self._hwnd, './img/TIAO_ZHAN_READY.bmp')
+                with self._lock:
+                    waiting, _ = find_image(self._hwnd, './img/TIAO_ZHAN_WAITING.bmp')
+                    ready, _ = find_image(self._hwnd, './img/TIAO_ZHAN_READY.bmp')
                 if waiting > ready > 0.9:
                     logger.debug("线程(%s) 等待队友加入" % self.getName())
                 elif ready > waiting > 0.9:
@@ -159,7 +163,8 @@ class OnmyojiThread(threading.Thread):
         if win is not True:
             return
         self.__reject_reward()
-        overflow, _ = find_image(self._hwnd, './img/OVERFLOW.bmp')
+        with self._lock:
+            overflow, _ = find_image(self._hwnd, './img/OVERFLOW.bmp')
         if overflow < 0.9:
             return
         if not self.__click_till_image('./img/OVERFLOW.bmp', POS_OVERFLOW_OK_LT, POS_OVERFLOW_OK_RB, 10, False):
@@ -194,7 +199,8 @@ class OnmyojiThread(threading.Thread):
             pass
         elif self._role == Role.Driver:
             self.__reject_reward()
-            invite, _ = find_image(self._hwnd, './img/JI_XU.bmp')
+            with self._lock:
+                invite, _ = find_image(self._hwnd, './img/JI_XU.bmp')
             if invite > 0.9:
                 logger.debug("线程(%s) 自动邀请队友" % self.getName())
                 if win:
@@ -208,11 +214,12 @@ class OnmyojiThread(threading.Thread):
         elif self._role == Role.Passenger:
             while True:
                 self.__reject_reward()
-                if win:
-                    invitation, pos = find_image(self._hwnd, './img/INVITATION.bmp')
-                else:
-                    invitation, pos = find_image(self._hwnd, './img/INVITATION_2.bmp')
-                in_team, _ = find_image(self._hwnd, './img/XIE_ZHAN_DUI_WU.bmp')
+                with self._lock:
+                    if win:
+                        invitation, pos = find_image(self._hwnd, './img/INVITATION.bmp')
+                    else:
+                        invitation, pos = find_image(self._hwnd, './img/INVITATION_2.bmp')
+                    in_team, _ = find_image(self._hwnd, './img/XIE_ZHAN_DUI_WU.bmp')
                 if invitation > 0.9:
                     logger.debug("线程(%s) 自动接收组队邀请" % self.getName())
                     click(self._hwnd, (pos[0]+20, pos[1]+20), (pos[0]+50, pos[1]+50))
@@ -225,28 +232,46 @@ class OnmyojiThread(threading.Thread):
         logger.info("<--- 线程(%s) 第 %d 次战斗结束 --->" % (self.getName(), counter))
         if self._count == counter or self._stop_after_finish:
             logger.info("<--- 线程(%s) 计划任务 %d/%d 完成 --->" % (self.getName(), counter, self._count))
-            self.__close_yu_hun_buff()
             self.__emit_stop_signal()
 
     def __close_yu_hun_buff(self):
-        buffs, pos = find_image(self._hwnd, './img/JIA_CHENG.bmp')
-        if buffs > 0.9:
+        logger.debug("<--- 线程(%s) 检测御魂加成 --->" % (self.getName()))
+        pos_start = (IMG_JIA_CHENG[0], IMG_JIA_CHENG[1])
+        pos_end = (IMG_JIA_CHENG[2], IMG_JIA_CHENG[3])
+        random_sleep(1000, 2000)
+        with self._lock:
+            max_val, pos = find_image(self._hwnd, './img/JIA_CHENG.bmp', pos_start, pos_end)
+        logger.debug("线程(%s) 查找加成入口 匹配度：%f" % (self.getName(), max_val))
+        if max_val > 0.9:
             logger.debug("线程(%s) 找到加成入口" % self.getName())
-            click(self._hwnd, (pos[0], pos[1]), (pos[2], pos[3]))
-            buff_yu_hun_on, pos_yu_hun = find_image(self._hwnd, './img/JIA_CHENG_YU_HUN_KAI.bmp')
-            buff_yu_hun_off, _ = find_image(self._hwnd, './img/JIA_CHENG_YU_HUN_GUAN.bmp')
-            if buff_yu_hun_on > 0.9 > buff_yu_hun_off:
-                click(self._hwnd, (pos_yu_hun[0], pos_yu_hun[1]), (pos_yu_hun[2], pos_yu_hun[3]))
-            logger.info("<--- 线程(%s) 关闭御魂加成 --->" % self.getName())
+            click(self._hwnd, (pos_start[0] + pos[0], pos_start[1] + pos[1]),
+                  (pos_start[0] + pos[2], pos_start[1] + pos[3]))
+            pos_start_yu_hun = (IMG_JIA_CHENG_YU_HUN[0], IMG_JIA_CHENG_YU_HUN[1])
+            pos_end_yu_hun = (IMG_JIA_CHENG_YU_HUN[2], IMG_JIA_CHENG_YU_HUN[3])
+            random_sleep(1000, 2000)
+            with self._lock:
+                buff_yu_hun_on, _ = find_image(self._hwnd, './img/JIA_CHENG_YU_HUN_KAI.bmp', pos_start_yu_hun, pos_end_yu_hun)
+            with self._lock:
+                buff_yu_hun_off, _ = find_image(self._hwnd, './img/JIA_CHENG_YU_HUN_GUAN.bmp', pos_start_yu_hun, pos_end_yu_hun)
+            logger.debug("线程(%s) 找到御魂加成 开：%f 关：%f" % (self.getName(), buff_yu_hun_on, buff_yu_hun_off))
+            if buff_yu_hun_on > buff_yu_hun_off > 0.9:
+                click(self._hwnd, (POS_JIA_CHENG_YU_HUN[0], POS_JIA_CHENG_YU_HUN[1]), (POS_JIA_CHENG_YU_HUN[2], POS_JIA_CHENG_YU_HUN[3]))
+                logger.info("<--- 线程(%s) 关闭御魂加成 --->" % self.getName())
+            else:
+                logger.info("<--- 线程(%s) 御魂加成是关闭状态 --->" % self.getName())
+            click(self._hwnd, (pos_start[0] + pos[0], pos_start[1] + pos[1]), (pos_start[0] + pos[2], pos_start[1] + pos[3]))
+        else:
+            logger.debug("线程(%s) 未找到加成入口：%d" % (self.getName(), max_val))
 
     def __reject_reward(self):
         pos = (IMG_XUAN_SHANG[0], IMG_XUAN_SHANG[1])
         pos_end = (IMG_XUAN_SHANG[2], IMG_XUAN_SHANG[3])
-        max_val, _ = find_image(self._hwnd, './img/XUAN_SHANG.bmp', pos, pos_end)
+        with self._lock:
+            max_val, _ = find_image(self._hwnd, './img/XUAN_SHANG.bmp', pos, pos_end)
         if max_val > 0.9:
             logger.info("线程(%s) 检测到悬赏邀请" % self.getName())
             index = self.__check_reward_type('./img/GOU_YU.bmp', './img/TI_LI.bmp')
-            can_accept = True if 0 <= index <= 1 else False
+            can_accept = True if index == 0 else False
             self.__sleep_or_quit(650, 250)
             if can_accept:
                 pos = (POS_ACCEPT_XUAN_SHANG[0], POS_ACCEPT_XUAN_SHANG[1])
@@ -261,7 +286,8 @@ class OnmyojiThread(threading.Thread):
 
     def __check_reward_type(self, *image_paths):
         for index, image in enumerate(image_paths):
-            max_val, _ = find_image(self._hwnd, image)
+            with self._lock:
+                max_val, _ = find_image(self._hwnd, image)
             if max_val > 0.9:
                 return index
         return -1
@@ -273,7 +299,8 @@ class OnmyojiThread(threading.Thread):
             self.__reject_reward()
             if time.clock() - start_time > max_time > 0:
                 return False
-            max_val, _ = find_image(self._hwnd, image_path)
+            with self._lock:
+                max_val, _ = find_image(self._hwnd, image_path)
             if (max_val > 0.9) is not disappear:
                 return True
 
@@ -285,7 +312,8 @@ class OnmyojiThread(threading.Thread):
             if time.clock() - start_time > max_time > 0:
                 return False, None
             for index, image in enumerate(image_paths):
-                max_val, _ = find_image(self._hwnd, image)
+                with self._lock:
+                    max_val, _ = find_image(self._hwnd, image)
                 if max_val > 0.9:
                     return True, index
 
@@ -296,7 +324,8 @@ class OnmyojiThread(threading.Thread):
             self.__reject_reward()
             if time.clock() - start_time > max_time > 0:
                 return False
-            max_val, _ = find_image(self._hwnd, image_path)
+            with self._lock:
+                max_val, _ = find_image(self._hwnd, image_path)
             if (max_val > 0.9) is not disappear:
                 return True
             else:
