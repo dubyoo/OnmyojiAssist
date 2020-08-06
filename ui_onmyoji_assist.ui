@@ -38,7 +38,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QCheckBox" name="checkBox_close_buff">
+    <widget class="QCheckBox" name="checkBox_quit_yys">
      <property name="enabled">
       <bool>true</bool>
      </property>
@@ -48,7 +48,7 @@
       </font>
      </property>
      <property name="text">
-      <string>完成后关闭 Buff</string>
+      <string>完成后关闭痒痒鼠</string>
      </property>
      <property name="checked">
       <bool>false</bool>

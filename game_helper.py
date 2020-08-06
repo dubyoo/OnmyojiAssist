@@ -45,6 +45,30 @@ class TimedMessageBox(QMessageBox):
             self.timer.stop()
             logger.info("正在关机")
             os.system('shutdown /s /t 5')
+            self.hide()
+
+
+class QuitYYSTimedMessageBox(QMessageBox):
+    def __init__(self, timeout=30, parent=None):
+        super(QuitYYSTimedMessageBox, self).__init__(parent)
+        self.timeout = timeout
+        self.setWindowTitle("自动关闭痒痒鼠")
+        self.setText("系统将在 %d 秒后关闭痒痒鼠，点击按钮取消？" % self.timeout)
+        self.timer = QtCore.QTimer(self)
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.tick)
+        self.timer.start()
+
+    def tick(self):
+        self.timeout -= 1
+        if self.timeout >= 0:
+            logger.info('%d' % self.timeout)
+            self.setText("系统将在 %d 秒后关闭痒痒鼠，点击按钮取消？" % self.timeout)
+        else:
+            self.timer.stop()
+            logger.info("正在关闭痒痒鼠")
+            os.system('taskkill /f /im onmyoji.exe')
+            self.hide()
 
 
 class XStream(QtCore.QObject):

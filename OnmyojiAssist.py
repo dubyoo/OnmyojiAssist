@@ -24,7 +24,8 @@ class OnmyojiAssist(QWidget):
         XStream.stdout().messageWritten.connect(self.ui.textBrowser.append)
         XStream.stderr().messageWritten.connect(self.ui.textBrowser.append)
         self.ui.checkBox_count.stateChanged.connect(self.on_checkbox_count_clicked)
-        self.ui.checkBox_shutdown.stateChanged.connect(self.on_checkbox_count_clicked)
+        self.ui.checkBox_quit_yys.stateChanged.connect(self.on_checkbox_quit_yys_after_finish_clicked)
+        self.ui.checkBox_shutdown.stateChanged.connect(self.on_checkbox_shutdown_after_finish_clicked)
         self.ui.pushButton_start.clicked.connect(self.on_start_button_clicked)
         self.ui.pushButton_stop.clicked.connect(self.on_stop_button_clicked)
         self.ui.pushButton_stop_after_finish.clicked.connect(self.on_stop_after_finish_button_clicked)
@@ -76,8 +77,23 @@ class OnmyojiAssist(QWidget):
         for thread in self.threads.values():
             thread.start()
 
+    def on_checkbox_quit_yys_after_finish_clicked(self):
+        if self.ui.checkBox_quit_yys.checkState() == Qt.Checked:
+            logger.info('!!! 完成后将关闭痒痒鼠 !!!')
+        else:
+            logger.debug('!!! 取消完成后关闭痒痒鼠 !!!')
+
+    def on_checkbox_shutdown_after_finish_clicked(self):
+        if self.ui.checkBox_shutdown.checkState() == Qt.Checked:
+            logger.info('!!! 完成后将关机 !!!')
+        else:
+            logger.debug('!!! 取消完成后关机 !!!')
+
     def on_stop_after_finish_button_clicked(self):
         logger.info('!!! 本次通关后即将全部停止 !!!')
+        if self.ui.checkBox_quit_yys.checkState():
+            logger.info('任务被手动停止，取消[完成后退出痒痒鼠]')
+            self.ui.checkBox_quit_yys.setCheckState(Qt.Unchecked)
         if self.ui.checkBox_shutdown.checkState():
             logger.info('任务被手动停止，取消[完成后关机]')
             self.ui.checkBox_shutdown.setCheckState(Qt.Unchecked)
@@ -85,6 +101,9 @@ class OnmyojiAssist(QWidget):
             thread.set_stop_after_finish()
 
     def on_stop_button_clicked(self):
+        if self.ui.checkBox_quit_yys.checkState():
+            logger.info('任务被手动停止，取消[完成后退出痒痒鼠]')
+            self.ui.checkBox_quit_yys.setCheckState(Qt.Unchecked)
         if self.ui.checkBox_shutdown.checkState():
             logger.info('任务被手动停止，取消[完成后关机]')
             self.ui.checkBox_shutdown.setCheckState(Qt.Unchecked)
@@ -103,6 +122,11 @@ class OnmyojiAssist(QWidget):
         self.ui.pushButton_start.setEnabled(True)
         self.ui.checkBox_count.setEnabled(True)
         self.on_checkbox_count_clicked()
+        if self.ui.checkBox_quit_yys.checkState():
+            logger.info('!!! 系统将在 30s 后退出痒痒鼠 !!!')
+            reply_quit_yys = QuitYYSTimedMessageBox(30, self).exec_()
+            if reply_quit_yys == QMessageBox.Ok:
+                logger.info("已取消退出痒痒鼠")
         if self.ui.checkBox_shutdown.checkState():
             logger.info('!!! 系统将在 30s 后关机 !!!')
             reply = TimedMessageBox(30, self).exec_()
