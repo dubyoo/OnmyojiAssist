@@ -65,8 +65,6 @@ class OnmyojiThread(threading.Thread):
         counter = 0
         while not self.is_stopped():
             counter += 1
-
-            logger.info("线程(%s) 合成结界卡第%d次，开始合成" % (self.getName(), counter))
             self.__jiejieka_compositing()
             self.__sleep_or_quit(2000, 1000)
             self.__check_jiejieka_compositing_result(counter)
@@ -93,6 +91,7 @@ class OnmyojiThread(threading.Thread):
             max_val, pos = find_image(self._hwnd, './img/JIEJIEKA_START_COMPOSITING.bmp', pos_start, pos_end)
         if max_val > 0.9:
             if self.__check_jiejieka():
+                logger.debug("线程(%s) 开始合成" % (self.getName()))
                 click(self._hwnd, (pos_start[0] + pos[0], pos_start[1] + pos[1]),
                       (pos_start[0] + pos[2], pos_start[1] + pos[3]))
         else:
@@ -124,7 +123,7 @@ class OnmyojiThread(threading.Thread):
         with self._lock:
             max_val, pos = find_image(self._hwnd, './img/JIEJIEKA_CONTINUE_ADD.bmp', pos_start, pos_end)
         if max_val > 0.9:
-            logger.info("线程(%s) 继续添加结界卡" % self.getName())
+            logger.debug("线程(%s) 继续添加结界卡" % self.getName())
             click(self._hwnd, (pos_start[0] + pos[0], pos_start[1] + pos[1]),
                   (pos_start[0] + pos[2], pos_start[1] + pos[3]))
 
@@ -150,7 +149,8 @@ class OnmyojiThread(threading.Thread):
             random_sleep(sleep_time, variable_time)
         if self.is_stopped():
             logger.debug("线程(%s) 即将停止" % self.getName())
-            self.__close_yu_hun_buff()
+            if self._work_type == WorkType.YuHun:
+                self.__close_yu_hun_buff()
             raise QuitThread('quit')
 
     def __role_judgement(self):

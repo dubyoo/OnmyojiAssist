@@ -118,11 +118,11 @@ def find_image(hwnd, img_template_path, pos_lt=None, pos_rb=None):
         :param img_template_path: 图片文件路径
         :param pos_lt: 截图区域的左上角坐标, 若为 None 则截取整个窗口
         :param pos_rb: 截图区域的右下角坐标, 若为 None 则截取整个窗口
-        :return: (maxVal,maxLoc) maxVal为相关性，越接近1越好，maxLoc为得到的坐标
+        :return: (maxVal,maxLoc) maxVal为相关性，越接近1越好，maxLoc为得到的坐标,若大于0.9，增加右下角坐标
     """
     img_template = cv2.imread(img_template_path, cv2.IMREAD_COLOR)
     img_cmp = screen_shot(hwnd, pos_lt, pos_rb)
-    w, h, _ = img_template.shape[::-1]
+    h, w, _ = img_template.shape[::-1]
     maxVal, maxLoc = compare_image(img_template, img_cmp)
     if maxVal > 0.9:
         img_loc = [maxLoc[0], maxLoc[1], maxLoc[0] + w, maxLoc[1] + h]
