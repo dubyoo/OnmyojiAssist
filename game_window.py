@@ -122,8 +122,13 @@ def find_image(hwnd, img_template_path, pos_lt=None, pos_rb=None):
     """
     img_template = cv2.imread(img_template_path, cv2.IMREAD_COLOR)
     img_cmp = screen_shot(hwnd, pos_lt, pos_rb)
-    return compare_image(img_template, img_cmp)
-
+    w, h, _ = img_template.shape[::-1]
+    maxVal, maxLoc = compare_image(img_template, img_cmp)
+    if maxVal > 0.9:
+        img_loc = [maxLoc[0], maxLoc[1], maxLoc[0] + w, maxLoc[1] + h]
+        return maxVal, img_loc
+    else:
+        return maxVal, maxLoc
 
 def show_img(img):
     cv2.imshow("image", img)

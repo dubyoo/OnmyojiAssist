@@ -6,14 +6,44 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>540</width>
-    <height>300</height>
+    <width>429</width>
+    <height>670</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Onmyoji Assist</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_radio_button">
+     <item>
+      <widget class="QRadioButton" name="radioButton_yuhun">
+       <property name="text">
+        <string>御魂</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">radioButtonGroup</string>
+       </attribute>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="radioButton_jiejieka">
+       <property name="text">
+        <string>结界卡合成</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">radioButtonGroup</string>
+       </attribute>
+      </widget>
+     </item>
+    </layout>
+   </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_counter">
      <item>
@@ -38,7 +68,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QCheckBox" name="checkBox_close_buff">
+    <widget class="QCheckBox" name="checkBox_quit_yys">
      <property name="enabled">
       <bool>true</bool>
      </property>
@@ -48,7 +78,7 @@
       </font>
      </property>
      <property name="text">
-      <string>完成后关闭 Buff</string>
+      <string>完成后关闭痒痒鼠</string>
      </property>
      <property name="checked">
       <bool>false</bool>
@@ -126,4 +156,7 @@
  </widget>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="radioButtonGroup"/>
+ </buttongroups>
 </ui>

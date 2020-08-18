@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from game_window import *
 import threading
 import OnmyojiThread
+from OnmyojiThread import WorkType
 import ui_onmyoji_assist
 
 
@@ -15,6 +16,7 @@ class OnmyojiAssist(QWidget):
         self.ui = ui_onmyoji_assist.Ui_OnmyojiAssist()
         self.init_ui()
         self.threads = {}
+        self._work_type = WorkType.YuHun
 
     def init_ui(self):
         self.ui.setupUi(self)
@@ -24,13 +26,25 @@ class OnmyojiAssist(QWidget):
         XStream.stdout().messageWritten.connect(self.ui.textBrowser.append)
         XStream.stderr().messageWritten.connect(self.ui.textBrowser.append)
         self.ui.checkBox_count.stateChanged.connect(self.on_checkbox_count_clicked)
-        self.ui.checkBox_shutdown.stateChanged.connect(self.on_checkbox_count_clicked)
+        self.ui.checkBox_quit_yys.stateChanged.connect(self.on_checkbox_quit_yys_after_finish_clicked)
+        self.ui.checkBox_shutdown.stateChanged.connect(self.on_checkbox_shutdown_after_finish_clicked)
         self.ui.pushButton_start.clicked.connect(self.on_start_button_clicked)
         self.ui.pushButton_stop.clicked.connect(self.on_stop_button_clicked)
         self.ui.pushButton_stop_after_finish.clicked.connect(self.on_stop_after_finish_button_clicked)
         self.ui.pushButton_log_level.setCheckable(True)
         self.ui.pushButton_log_level.clicked[bool].connect(self.on_log_level_clicked)
         self.stop_signal.connect(self.stop_thread)
+        self.ui.radioButtonGroup.buttonClicked.connect(self.on_radio_button_clicked)
+
+    def on_radio_button_clicked(self):
+        logger.debug('当前选项：%s' % self.ui.radioButtonGroup.checkedId())
+        if self.ui.radioButtonGroup.checkedId() == self.ui.radioButtonGroup.id(self.ui.radioButton_yuhun):
+            logger.info('当前选项：御魂')
+            self._work_type = WorkType.YuHun
+        elif self.ui.radioButtonGroup.checkedId() == self.ui.radioButtonGroup.id(self.ui.radioButton_jiejieka):
+            logger.info('当前选项：结界卡合成')
+            self._work_type = WorkType.JieJieKa
+
 
     def on_log_level_clicked(self, pressed):
         if pressed:
@@ -60,6 +74,7 @@ class OnmyojiAssist(QWidget):
             onmyoji_thread = OnmyojiThread.OnmyojiThread(self, hwnd, lock)
             onmyoji_thread.set_count(count)
             onmyoji_thread.setName(str(i))
+            onmyoji_thread.set_work_type(self._work_type)
             self.threads[i] = onmyoji_thread
         return True
 
@@ -76,8 +91,23 @@ class OnmyojiAssist(QWidget):
         for thread in self.threads.values():
             thread.start()
 
+    def on_checkbox_quit_yys_after_finish_clicked(self):
+        if self.ui.checkBox_quit_yys.checkState() == Qt.Checked:
+            logger.info('!!! 完成后将关闭痒痒鼠 !!!')
+        else:
+            logger.debug('!!! 取消完成后关闭痒痒鼠 !!!')
+
+    def on_checkbox_shutdown_after_finish_clicked(self):
+        if self.ui.checkBox_shutdown.checkState() == Qt.Checked:
+            logger.info('!!! 完成后将关机 !!!')
+        else:
+            logger.debug('!!! 取消完成后关机 !!!')
+
     def on_stop_after_finish_button_clicked(self):
         logger.info('!!! 本次通关后即将全部停止 !!!')
+        if self.ui.checkBox_quit_yys.checkState():
+            logger.info('任务被手动停止，取消[完成后退出痒痒鼠]')
+            self.ui.checkBox_quit_yys.setCheckState(Qt.Unchecked)
         if self.ui.checkBox_shutdown.checkState():
             logger.info('任务被手动停止，取消[完成后关机]')
             self.ui.checkBox_shutdown.setCheckState(Qt.Unchecked)
@@ -85,6 +115,9 @@ class OnmyojiAssist(QWidget):
             thread.set_stop_after_finish()
 
     def on_stop_button_clicked(self):
+        if self.ui.checkBox_quit_yys.checkState():
+            logger.info('任务被手动停止，取消[完成后退出痒痒鼠]')
+            self.ui.checkBox_quit_yys.setCheckState(Qt.Unchecked)
         if self.ui.checkBox_shutdown.checkState():
             logger.info('任务被手动停止，取消[完成后关机]')
             self.ui.checkBox_shutdown.setCheckState(Qt.Unchecked)
@@ -103,6 +136,11 @@ class OnmyojiAssist(QWidget):
         self.ui.pushButton_start.setEnabled(True)
         self.ui.checkBox_count.setEnabled(True)
         self.on_checkbox_count_clicked()
+        if self.ui.checkBox_quit_yys.checkState():
+            logger.info('!!! 系统将在 30s 后退出痒痒鼠 !!!')
+            reply_quit_yys = QuitYYSTimedMessageBox(30, self).exec_()
+            if reply_quit_yys == QMessageBox.Ok:
+                logger.info("已取消退出痒痒鼠")
         if self.ui.checkBox_shutdown.checkState():
             logger.info('!!! 系统将在 30s 后关机 !!!')
             reply = TimedMessageBox(30, self).exec_()

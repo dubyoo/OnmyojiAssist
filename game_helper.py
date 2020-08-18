@@ -11,7 +11,14 @@ from PyQt5.QtWidgets import QMessageBox
 IMG_TEAM_TIAO_ZHAN = (1054, 552, 1110, 594)
 IMG_TEAM_READY = (21, 14, 191, 56)
 IMG_XUAN_SHANG = (496, 137, 620, 176)
+IMG_JIA_CHENG = (696, 29, 744, 86)
+IMG_JIA_CHENG_YU_HUN = (557, 171, 729, 224)
+IMG_HE_CHENG_JIE_JIE_KA = (678, 498, 844, 564)
+IMG_TIAN_JIA_JIE_JIE_KA = (900, 498, 984, 576)
+IMG_XIN_JIE_JIE_KA = (294, 154, 319, 184)
+IMG_JIE_JIE_KA_YUAN_LIAO = (550, 87, 963, 483)
 
+POS_JIA_CHENG_YU_HUN = (685, 184, 783, 211)
 POS_REJECT_XUAN_SHANG = (739, 442, 776, 480)
 POS_ACCEPT_XUAN_SHANG = (726, 342, 872, 401)
 POS_TEAM_TIAO_ZHAN = IMG_TEAM_TIAO_ZHAN
@@ -42,6 +49,30 @@ class TimedMessageBox(QMessageBox):
             self.timer.stop()
             logger.info("正在关机")
             os.system('shutdown /s /t 5')
+            self.hide()
+
+
+class QuitYYSTimedMessageBox(QMessageBox):
+    def __init__(self, timeout=30, parent=None):
+        super(QuitYYSTimedMessageBox, self).__init__(parent)
+        self.timeout = timeout
+        self.setWindowTitle("自动关闭痒痒鼠")
+        self.setText("系统将在 %d 秒后关闭痒痒鼠，点击按钮取消？" % self.timeout)
+        self.timer = QtCore.QTimer(self)
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.tick)
+        self.timer.start()
+
+    def tick(self):
+        self.timeout -= 1
+        if self.timeout >= 0:
+            logger.info('%d' % self.timeout)
+            self.setText("系统将在 %d 秒后关闭痒痒鼠，点击按钮取消？" % self.timeout)
+        else:
+            self.timer.stop()
+            logger.info("正在关闭痒痒鼠")
+            os.system('taskkill /f /im onmyoji.exe')
+            self.hide()
 
 
 class XStream(QtCore.QObject):

@@ -11,6 +11,11 @@ class Role(Enum):
     Driver = 2
     Passenger = 3
 
+@unique
+class WorkType(Enum):
+    YuHun = 1
+    JieJieKa = 2
+
 
 class QuitThread(Exception):
     pass
@@ -26,6 +31,10 @@ class OnmyojiThread(threading.Thread):
         self._role = Role.Unknown
         self._stop_after_finish = False
         self._count = 0
+        self._work_type = WorkType.YuHun
+
+    def set_work_type(self, work_type):
+        self._work_type = work_type
 
     def set_count(self, count):
         self._count = count
@@ -42,11 +51,82 @@ class OnmyojiThread(threading.Thread):
     def run(self):
         logger.info("线程(%s) 开始运行" % self.getName())
         try:
-            # self.__test_loop()e
-            self.__role_judgement()
-            self.__main_loop()
+            if self._work_type == WorkType.YuHun:
+                #self.__test_loop()
+                self.__role_judgement()
+                self.__main_loop()
+            elif self._work_type == WorkType.JieJieKa:
+                self.__jiejieka_compositing_loop()
         except QuitThread:
             logger.info("线程(%s) 已退出" % self.getName())
+
+    def __jiejieka_compositing_loop(self):
+        logger.info("线程(%s) 开始合成结界卡" % self.getName())
+        counter = 0
+        while not self.is_stopped():
+            counter += 1
+
+            logger.info("线程(%s) 合成结界卡第%d次，开始合成" % (self.getName(), counter))
+            self.__jiejieka_compositing()
+            self.__sleep_or_quit(2000, 1000)
+            self.__check_jiejieka_compositing_result(counter)
+            self.__sleep_or_quit(500)
+            self.__add_jiejieka()
+            self.__sleep_or_quit(500, 1500)
+
+    def __check_jiejieka(self):
+        pos = (IMG_JIE_JIE_KA_YUAN_LIAO[0], IMG_JIE_JIE_KA_YUAN_LIAO[1])
+        pos_end = (IMG_JIE_JIE_KA_YUAN_LIAO[2], IMG_JIE_JIE_KA_YUAN_LIAO[3])
+        index = self.__check_image_type(pos, pos_end, './img/JIEJIEKA_ADD_EMPTY1.bmp', './img/JIEJIEKA_ADD_EMPTY2.bmp',
+                                        './img/JIEJIEKA_ADD_EMPTY3.bmp')
+        empty = True if index == 0 or index == 1 or index == 2 else False
+        if empty:
+            logger.info("线程(%s) 合成原料空缺,停止合成" % self.getName())
+            self.__emit_stop_signal()
+        else:
+            return True
+
+    def __jiejieka_compositing(self):
+        pos_start = (IMG_HE_CHENG_JIE_JIE_KA[0], IMG_HE_CHENG_JIE_JIE_KA[1])
+        pos_end = (IMG_HE_CHENG_JIE_JIE_KA[2], IMG_HE_CHENG_JIE_JIE_KA[3])
+        with self._lock:
+            max_val, pos = find_image(self._hwnd, './img/JIEJIEKA_START_COMPOSITING.bmp', pos_start, pos_end)
+        if max_val > 0.9:
+            if self.__check_jiejieka():
+                click(self._hwnd, (pos_start[0] + pos[0], pos_start[1] + pos[1]),
+                      (pos_start[0] + pos[2], pos_start[1] + pos[3]))
+        else:
+            logger.info("线程(%s) 无法识别合成界面" % self.getName())
+            self.__emit_stop_signal()
+
+    def __check_jiejieka_compositing_result(self, counter):
+        pos_start = (IMG_XIN_JIE_JIE_KA[0], IMG_XIN_JIE_JIE_KA[1])
+        pos_end = (IMG_XIN_JIE_JIE_KA[2], IMG_XIN_JIE_JIE_KA[3])
+        index = self.__check_image_type(pos_start, pos_end, './img/JIE_JIE_KA_DOU_YU.bmp', './img/JIE_JIE_KA_SAN_SHI_NEI.bmp',
+                                        './img/JIE_JIE_KA_TAI_GU.bmp', './img/JIE_JIE_KA_TAI_YIN.bmp')
+        if index == 0:
+            logger.info("线程(%s) 第%d次合成：斗鱼" % (self.getName(), counter))
+        elif index == 1:
+            logger.info("线程(%s) 第%d次合成：伞室内" % (self.getName(), counter))
+        elif index == 2:
+            logger.info("线程(%s) 第%d次合成：太鼓" % (self.getName(), counter))
+        elif index == 3:
+            logger.info("线程(%s) 第%d次合成：太阴" % (self.getName(), counter))
+        else:
+            logger.info("线程(%s) 第%d次合成：无法识别" % (self.getName(), counter))
+        if self._count == counter:
+            logger.info("线程(%s) 合成结界卡%d次，完成合成" % (self.getName(), counter))
+            self.__emit_stop_signal()
+
+    def __add_jiejieka(self):
+        pos_start = (IMG_TIAN_JIA_JIE_JIE_KA[0], IMG_TIAN_JIA_JIE_JIE_KA[1])
+        pos_end = (IMG_TIAN_JIA_JIE_JIE_KA[2], IMG_TIAN_JIA_JIE_JIE_KA[3])
+        with self._lock:
+            max_val, pos = find_image(self._hwnd, './img/JIEJIEKA_CONTINUE_ADD.bmp', pos_start, pos_end)
+        if max_val > 0.9:
+            logger.info("线程(%s) 继续添加结界卡" % self.getName())
+            click(self._hwnd, (pos_start[0] + pos[0], pos_start[1] + pos[1]),
+                  (pos_start[0] + pos[2], pos_start[1] + pos[3]))
 
     def __test_loop(self):
         counter = 0
@@ -70,6 +150,7 @@ class OnmyojiThread(threading.Thread):
             random_sleep(sleep_time, variable_time)
         if self.is_stopped():
             logger.debug("线程(%s) 即将停止" % self.getName())
+            self.__close_yu_hun_buff()
             raise QuitThread('quit')
 
     def __role_judgement(self):
@@ -233,6 +314,35 @@ class OnmyojiThread(threading.Thread):
             logger.info("<--- 线程(%s) 计划任务 %d/%d 完成 --->" % (self.getName(), counter, self._count))
             self.__emit_stop_signal()
 
+    def __close_yu_hun_buff(self):
+        logger.debug("<--- 线程(%s) 检测御魂加成 --->" % (self.getName()))
+        pos_start = (IMG_JIA_CHENG[0], IMG_JIA_CHENG[1])
+        pos_end = (IMG_JIA_CHENG[2], IMG_JIA_CHENG[3])
+        random_sleep(1000, 2000)
+        with self._lock:
+            max_val, pos = find_image(self._hwnd, './img/JIA_CHENG.bmp', pos_start, pos_end)
+        logger.debug("线程(%s) 查找加成入口 匹配度：%f" % (self.getName(), max_val))
+        if max_val > 0.9:
+            logger.debug("线程(%s) 找到加成入口" % self.getName())
+            click(self._hwnd, (pos_start[0] + pos[0], pos_start[1] + pos[1]),
+                  (pos_start[0] + pos[2], pos_start[1] + pos[3]))
+            pos_start_yu_hun = (IMG_JIA_CHENG_YU_HUN[0], IMG_JIA_CHENG_YU_HUN[1])
+            pos_end_yu_hun = (IMG_JIA_CHENG_YU_HUN[2], IMG_JIA_CHENG_YU_HUN[3])
+            random_sleep(1000, 2000)
+            with self._lock:
+                buff_yu_hun_on, _ = find_image(self._hwnd, './img/JIA_CHENG_YU_HUN_KAI.bmp', pos_start_yu_hun, pos_end_yu_hun)
+            with self._lock:
+                buff_yu_hun_off, _ = find_image(self._hwnd, './img/JIA_CHENG_YU_HUN_GUAN.bmp', pos_start_yu_hun, pos_end_yu_hun)
+            logger.debug("线程(%s) 找到御魂加成 开：%f 关：%f" % (self.getName(), buff_yu_hun_on, buff_yu_hun_off))
+            if buff_yu_hun_on > buff_yu_hun_off > 0.9:
+                click(self._hwnd, (POS_JIA_CHENG_YU_HUN[0], POS_JIA_CHENG_YU_HUN[1]), (POS_JIA_CHENG_YU_HUN[2], POS_JIA_CHENG_YU_HUN[3]))
+                logger.info("<--- 线程(%s) 关闭御魂加成 --->" % self.getName())
+            else:
+                logger.info("<--- 线程(%s) 御魂加成是关闭状态 --->" % self.getName())
+            click(self._hwnd, (pos_start[0] + pos[0], pos_start[1] + pos[1]), (pos_start[0] + pos[2], pos_start[1] + pos[3]))
+        else:
+            logger.debug("线程(%s) 未找到加成入口：%d" % (self.getName(), max_val))
+
     def __reject_reward(self):
         pos = (IMG_XUAN_SHANG[0], IMG_XUAN_SHANG[1])
         pos_end = (IMG_XUAN_SHANG[2], IMG_XUAN_SHANG[3])
@@ -253,6 +363,14 @@ class OnmyojiThread(threading.Thread):
                 logger.info("线程(%s) 已拒绝悬赏" % self.getName())
             click(self._hwnd, pos, pos_end)
         self.__sleep_or_quit(50)
+
+    def __check_image_type(self, pos, pos_end, *image_paths):
+        for index, image in enumerate(image_paths):
+            with self._lock:
+                max_val, _ = find_image(self._hwnd, image, pos, pos_end)
+            if max_val > 0.9:
+                return index
+        return -1
 
     def __check_reward_type(self, *image_paths):
         for index, image in enumerate(image_paths):
