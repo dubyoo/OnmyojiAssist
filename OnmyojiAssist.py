@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from game_window import *
 import threading
 import OnmyojiThread
+from OnmyojiThread import WorkType
 import ui_onmyoji_assist
 
 
@@ -15,6 +16,7 @@ class OnmyojiAssist(QWidget):
         self.ui = ui_onmyoji_assist.Ui_OnmyojiAssist()
         self.init_ui()
         self.threads = {}
+        self._work_type = WorkType.YuHun
 
     def init_ui(self):
         self.ui.setupUi(self)
@@ -32,6 +34,17 @@ class OnmyojiAssist(QWidget):
         self.ui.pushButton_log_level.setCheckable(True)
         self.ui.pushButton_log_level.clicked[bool].connect(self.on_log_level_clicked)
         self.stop_signal.connect(self.stop_thread)
+        self.ui.radioButtonGroup.buttonClicked.connect(self.on_radio_button_clicked)
+
+    def on_radio_button_clicked(self):
+        logger.debug('当前选项：%s' % self.ui.radioButtonGroup.checkedId())
+        if self.ui.radioButtonGroup.checkedId() == self.ui.radioButtonGroup.id(self.ui.radioButton_yuhun):
+            logger.info('当前选项：御魂')
+            self._work_type = WorkType.YuHun
+        elif self.ui.radioButtonGroup.checkedId() == self.ui.radioButtonGroup.id(self.ui.radioButton_jiejieka):
+            logger.info('当前选项：结界卡合成')
+            self._work_type = WorkType.JieJieKa
+
 
     def on_log_level_clicked(self, pressed):
         if pressed:
@@ -61,6 +74,7 @@ class OnmyojiAssist(QWidget):
             onmyoji_thread = OnmyojiThread.OnmyojiThread(self, hwnd, lock)
             onmyoji_thread.set_count(count)
             onmyoji_thread.setName(str(i))
+            onmyoji_thread.set_work_type(self._work_type)
             self.threads[i] = onmyoji_thread
         return True
 
